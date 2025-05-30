@@ -83,7 +83,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-and-push-new-docker-image:
-    needs: patch-dockerfile-and-push
+    needs:
+        - check-new-release
+        - patch-dockerfile-and-push
     if: ${{ needs.check-new-release.outputs.has_new_release == 'true' }}
     uses: ./.github/workflows/build-and-push.yml
     secrets: inherit
