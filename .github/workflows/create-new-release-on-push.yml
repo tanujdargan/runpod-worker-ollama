@@ -1,9 +1,9 @@
-name: 👀 Check for new ollama stable releases and builds a new custom image release if needed
+name: Create new release on push
 
 on:
-  schedule:
-    - cron: '0 8 * * *' # Every day at 8am
-  workflow_dispatch:
+  push:
+    branches:
+      - master
 
 jobs:
   check-new-release:
@@ -15,13 +15,15 @@ jobs:
     outputs:
       has_new_release: ${{ steps.new_release_check.outputs.has_new_release }}
       version_to_release: ${{ steps.ollama_version.outputs.version_to_release }}
+      next_version_suffix: ${{ steps.new_release_check.outputs.next_version_suffix }}
 
     steps:
-      - name: 🆕 Get the latest ollama release
+      - name: 👀 Get the latest ollama-serverless stable release
         id: custom_image_release
-        uses: dvershinin/lastversion-action@main
+        uses: pozetroninc/github-action-get-latest-release@v0.8.0
         with:
-          repository: 'SvenBrnn/runpod-worker-ollama'
+          repository: SvenBrnn/runpod-worker-ollama
+          excludes: prerelease,draft
 
       - name: 🆕 Get the latest ollama release
         id: ollama_release
@@ -32,21 +34,39 @@ jobs:
       - name: 🤲 Check if it is a newer ollama release
         id: new_release_check
         run: |
-          echo "👀 Latest Codely custom image release: ${{ steps.custom_image_release.outputs.last_version }}"
+          echo "👀 Latest Codely custom image release: ${{ steps.custom_image_release.outputs.release }}"
           echo "🆕 Latest ollama release: ${{ steps.ollama_release.outputs.last_version }}"
 
-          custom_version_orig=$(echo "${{ steps.custom_image_release.outputs.last_version }}" | sed 's/ollama@//g')
+          custom_version_orig=$(echo "${{ steps.custom_image_release.outputs.release }}" | sed 's/ollama@//g')
           custom_version=$(echo "$custom_version_orig" | sed 's/-[0-9]*//g')  # Remove the suffix
           ollama_version=$(echo "${{ steps.ollama_release.outputs.last_version }}" | sed 's/ollama@//g')
 
           latest_version=$(echo -e "$custom_version\n$ollama_version" | sort -V | tail -n1)
-
-          if [ "$custom_version" != "$latest_version" ]; then
-            echo "has_new_release=true" >> $GITHUB_OUTPUT
-            echo "🤩 New release detected! Releasing new custom image version in 1, 2…"
+          echo "has_new_release=true" >> $GITHUB_OUTPUT
+          
+          # Debug print
+          echo "custom_version_orig=$custom_version_orig"
+          echo "custom_version=$custom_version"
+          echo "ollama_version=$ollama_version"
+          
+          # Calculate the next_version_suffix to compare with the new release
+          # If the custom_version does not equal the latest_version, then it is a new release and we don't need a suffix
+          if [ "$custom_version" != "$ollama_version" ]; then
+              echo "next_version_suffix=" >> $GITHUB_OUTPUT
           else
-            echo "has_new_release=false" >> $GITHUB_OUTPUT
-            echo "👍 Release has not changed or it is previous to the current one. Doing nothing."
+              # If the custom_version equals the latest_version, then it is a new release and we need to increment the suffix
+              # If there is no suffix present we start with 1
+              # Check if we have a - first
+              has_suffix=$(echo "$custom_version_orig" | sed 's/[^-]//g')
+              if [ -z "$has_suffix" ]; then
+                  suffix="-1"
+              else
+                  suffix=$(echo "$custom_version_orig" | grep -o '[0-9]*$')
+                  suffix="-$((suffix + 1))"
+              fi
+              
+              echo "next_version_suffix=$suffix"
+              echo "next_version_suffix=$suffix" >> $GITHUB_OUTPUT
           fi
 
       - name: 🔡 Remove 'ollama@' from release name to get the version
@@ -55,37 +75,13 @@ jobs:
         run: |
           version_to_release=$(echo "${{ steps.ollama_release.outputs.last_version }}" | sed 's/ollama@//g')
           echo "version_to_release=$version_to_release" >> $GITHUB_OUTPUT
-
-  patch-dockerfile-and-push:
-    needs: check-new-release
-    if: ${{ needs.check-new-release.outputs.has_new_release == 'true' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Patch Dockerfile with new OLLAMA_VERSION
-        run: |
-          sed -i '1s/^ARG OLLAMA_VERSION=.*/ARG OLLAMA_VERSION=${{ needs.check-new-release.outputs.version_to_release }}/' Dockerfile
-
-      - name: Commit and push changes
-        run: |
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add Dockerfile
-            if ! git diff --cached --quiet; then
-              git commit -m "chore: bump OLLAMA_VERSION to ${{ needs.check-new-release.outputs.version_to_release }}"
-              git push
-            else
-              echo "No changes to commit."
-            fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          echo "next_version_suffix=${{ steps.new_release_check.outputs.next_version_suffix }}" >> $GITHUB_OUTPUT
 
   build-and-push-new-docker-image:
-    needs: patch-dockerfile-and-push
+    needs: check-new-release
     if: ${{ needs.check-new-release.outputs.has_new_release == 'true' }}
     uses: ./.github/workflows/build-and-push.yml
     secrets: inherit
     with:
       ollama_version: ${{ needs.check-new-release.outputs.version_to_release }}
+      next_version_suffix: ${{ needs.check-new-release.outputs.next_version_suffix }}
