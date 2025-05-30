@@ -56,10 +56,24 @@ jobs:
           version_to_release=$(echo "${{ steps.ollama_release.outputs.last_version }}" | sed 's/ollama@//g')
           echo "version_to_release=$version_to_release" >> $GITHUB_OUTPUT
 
-  build-and-push-new-docker-image:
+  patch-dockerfile-and-push:
     needs: check-new-release
     if: ${{ needs.check-new-release.outputs.has_new_release == 'true' }}
-    uses: ./.github/workflows/build-and-push.yml
-    secrets: inherit
-    with:
-      ollama_version: ${{ needs.check-new-release.outputs.version_to_release }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Patch Dockerfile with new OLLAMA_VERSION
+        run: |
+          sed -i '1s/^ARG OLLAMA_VERSION=.*/ARG OLLAMA_VERSION=${{ needs.check-new-release.outputs.version_to_release }}/' Dockerfile
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Dockerfile
+          git commit -m "chore: bump OLLAMA_VERSION to ${{ needs.check-new-release.outputs.version_to_release }}"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
