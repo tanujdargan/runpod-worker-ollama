@@ -21,10 +21,10 @@ RUN apt-get update --yes --quiet && DEBIAN_FRONTEND=noninteractive apt-get insta
     python3.11-lib2to3 \
     python3.11-gdbm \
     python3.11-tk \
-    curl \
-    pip && \
-    ln -s /usr/bin/python3 /usr/bin/python && \
-    pip install --upgrade pip && \
+    bash \
+    curl && \
+    ln -s /usr/bin/python3.11 /usr/bin/python && \
+    curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -38,8 +38,8 @@ ADD ./src /work
 ENV OLLAMA_MODELS="/runpod-volume"
 
 # Install runpod and its dependencies
-RUN pip install -r requirements.txt && \
-    chmod +x start.sh
+RUN pip install -r requirements.txt && chmod +x /work/start.sh
+    
 
 # Set the entrypoint
 ENTRYPOINT ["/bin/sh", "-c", "/work/start.sh"]
