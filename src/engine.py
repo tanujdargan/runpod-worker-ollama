@@ -18,8 +18,8 @@ class OllamaEngine:
         print ("OllamaEngine initialized")
 
     async def generate(self, job_input):
-        # Get model from MODEL_NAME defauting to llama3.2:1b
-        model = os.getenv("MODEL_NAME", "llama3.2:1b")
+        # Get model from job_input, then MODEL_NAME, defaulting to llama3.2:1b
+        model = job_input.model or os.getenv("MODEL_NAME", "llama3.2:1b")
 
         # Depending if prompt is a string or a list, we need to handle it differently and send it to the OpenAI API
         if isinstance(job_input.llm_input, str):

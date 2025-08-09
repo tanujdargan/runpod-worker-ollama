@@ -7,7 +7,7 @@
   "config": {
     "runsOn": "GPU",
     "gpuCount": 1,
-    "gpuIds": "AMPERE_16,AMPERE_24,ADA_24",
+    "gpuIds": "ADA_24,ADA_32_PRO,ADA_48_PRO",
     "containerDiskInGb": 20,
     "presets": [],
     "env": [
@@ -17,7 +17,7 @@
             "name": "Model Name",
             "type": "string",
             "description": "Name of a model to preload",
-            "default": "phi3",
+            "default": "",
             "advanced": false
           }
       }
