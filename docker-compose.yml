@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  pear-care-unified:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pear-care-unified
+    ports:
+      - "8000:8000"
+      - "11434:11434"
+    environment:
+      # OpenAI Configuration
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_REQUEST_TIMEOUT=30.0
+      - OPENAI_MAX_RETRIES=3
+      
+      # Authentication
+      - VERCEL_API_SECRET=${VERCEL_API_SECRET}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      
+      # Ollama Configuration
+      - OLLAMA_BASE_URL=http://localhost:11434
+      - OLLAMA_MODEL=medgemma:27b
+      
+      # Application Configuration
+      - HOST=0.0.0.0
+      - PORT=8000
+      - LOG_LEVEL=info
+      - MAX_CONCURRENT_REQUESTS=10
+      - RATE_LIMIT_PER_HOUR=1000
+      
+      # Model Configuration
+      - DEFAULT_MAX_TOKENS=4096
+      - DEFAULT_TEMPERATURE=0.7
+      
+      # CORS Configuration
+      - ALLOWED_ORIGINS=*
+    volumes:
+      - ollama_data:/root/.ollama
+      - app_logs:/app/logs
+      - app_data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  ollama_data:
+    driver: local
+  app_logs:
+    driver: local
+  app_data:
+    driver: local

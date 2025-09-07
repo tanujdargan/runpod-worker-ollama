@@ -1,40 +1,77 @@
 #!/bin/bash
+# Unified container startup script
+# Starts both Ollama and FastAPI services
 
+set -e
+
+echo " Starting Pear Care Unified Container..."
+
+# Function to cleanup on exit
 cleanup() {
-    echo "Cleaning up..."
-    pkill -P $$ # Kill all child processes of the current script
-    exit 0
+    echo "Shutting down services..."
+    kill $OLLAMA_PID $FASTAPI_PID 2>/dev/null || true
+    wait
+    echo "Cleanup complete"
 }
 
-# Trap exit signals and call the cleanup function
-trap cleanup SIGINT SIGTERM
+# Set trap for cleanup
+trap cleanup EXIT INT TERM
 
-# Kill any existing ollama processes
-pgrep ollama | xargs kill
+# Start Ollama in background
+echo "Starting Ollama server..."
+ollama serve &
+OLLAMA_PID=$!
 
-# Start the ollama server and log its output
-ollama serve 2>&1 | tee ollama.server.log &
-OLLAMA_PID=$! # Store the process ID (PID) of the background command
+# Wait for Ollama to be ready
+echo " Waiting for Ollama to start..."
+sleep 10
 
-check_server_is_running() {
-    echo "Checking if server is running..."
-    if cat ollama.server.log | grep -q "Listening"; then
-        return 0 # Success
-    else
-        return 1 # Failure
+# Test Ollama connection
+echo "Testing Ollama connection..."
+for i in {1..30}; do
+    if curl -s http://localhost:11434/api/tags > /dev/null; then
+        echo "Ollama is ready"
+        break
     fi
-}
-
-# Wait for the server to start
-while ! check_server_is_running; do
-    sleep 5
+    echo "Waiting for Ollama... ($i/30)"
+    sleep 2
 done
-# IF $MODEL_NAME is set, make sure to pull the model, else just skip
-if [ -z "$MODEL_NAME" ]; then
-    echo "No model name provided. Skipping model pull..."
+
+# Verify MedGemma model is available
+echo "Verifying MedGemma model..."
+if curl -s http://localhost:11434/api/tags | grep -q "medgemma:27b"; then
+    echo " MedGemma model is available"
 else
-    echo "Pulling model $MODEL_NAME..."
-    ollama pull $MODEL_NAME
+    echo " MedGemma model not found, attempting to pull..."
+    ollama pull medgemma:27b
 fi
 
-python -u handler.py $1
+# Set environment variables for production
+export HOST=${HOST:-0.0.0.0}
+export PORT=${PORT:-8000}
+export WORKERS=${UVICORN_WORKERS:-4}
+export LOG_LEVEL=${LOG_LEVEL:-info}
+
+# Start FastAPI application
+echo " Starting FastAPI application on ${HOST}:${PORT}..."
+python -m uvicorn app.main:app \
+    --host $HOST \
+    --port $PORT \
+    --workers $WORKERS \
+    --log-level $LOG_LEVEL \
+    --access-log \
+    --timeout-keep-alive 5 \
+    --timeout-graceful-shutdown 30 &
+
+FASTAPI_PID=$!
+
+echo " Services started:"
+echo "   - Ollama: http://localhost:11434"
+echo "   - FastAPI: http://${HOST}:${PORT}"
+echo "   - Health check: http://${HOST}:${PORT}/health"
+
+# Wait for either process to exit
+wait -n
+
+# If we reach here, one of the processes has exited
+echo "  A service has exited, shutting down..."
