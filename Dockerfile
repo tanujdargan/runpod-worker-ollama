@@ -1,64 +1,60 @@
-FROM nvidia/cuda:11.8-runtime-ubuntu22.04
+ARG OLLAMA_VERSION=0.11.10
+
+# Use the official Ollama image which includes CUDA support
+FROM ollama/ollama:${OLLAMA_VERSION}
 
 # Set environment variables
-ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
 ENV RUNPOD_SERVERLESS=1
 
-# System dependencies
-RUN apt-get update && apt-get install -y \
+# System dependencies - install Python and required packages
+RUN apt-get update --yes --quiet && DEBIAN_FRONTEND=noninteractive apt-get install --yes --quiet --no-install-recommends \
+    software-properties-common \
+    gpg-agent \
+    build-essential \
+    apt-utils \
+    && apt-get install --reinstall ca-certificates \
+    && add-apt-repository --yes ppa:deadsnakes/ppa && apt update --yes --quiet \
+    && DEBIAN_FRONTEND=noninteractive apt-get install --yes --quiet --no-install-recommends \
     python3.11 \
-    python3-pip \
     python3.11-dev \
+    python3.11-distutils \
+    python3.11-lib2to3 \
+    python3.11-gdbm \
+    python3.11-tk \
+    bash \
     curl \
     wget \
     git \
-    build-essential \
+    && ln -s /usr/bin/python3.11 /usr/bin/python \
+    && curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11 \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Create symlink for python
-RUN ln -sf /usr/bin/python3.11 /usr/bin/python
-
-# Install Ollama
-RUN curl -fsSL https://ollama.ai/install.sh | sh
-
 # Set working directory
-WORKDIR /app
-
-# Copy requirements first (for better Docker caching)
-COPY src/requirements.txt /app/requirements.txt
-
-# Install Python dependencies including uvloop for better performance
-RUN pip install --no-cache-dir --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install --no-cache-dir uvloop
+WORKDIR /work
 
 # Copy application code
-COPY src/ /app/
+COPY src/ /work/
+
+# Set default ollama models directory to /runpod-volume for RunPod compatibility
+ENV OLLAMA_MODELS="/runpod-volume"
+
+# Install Python dependencies
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install -r requirements.txt && \
+    chmod +x /work/start.sh
 
 # Create necessary directories
-RUN mkdir -p /app/logs
-RUN mkdir -p /app/data
-
-# Start Ollama and download MedGemma model
-RUN ollama serve & \
-    sleep 15 && \
-    echo "Pulling MedGemma model..." && \
-    ollama pull medgemma:27b && \
-    echo "Model download complete" && \
-    pkill ollama
+RUN mkdir -p /work/logs && \
+    mkdir -p /work/data
 
 # Expose ports
 EXPOSE 8000 11434
-
-# Create startup script for serverless
-COPY src/start.sh /app/start.sh
-RUN chmod +x /app/start.sh
 
 # Health check for standalone mode
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Default command - will be overridden by RunPod
-CMD ["python", "handler.py"]
+# Set the entrypoint to match original repo pattern
+ENTRYPOINT ["/bin/sh", "-c", "/work/start.sh"]

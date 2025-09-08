@@ -4,7 +4,15 @@
 
 set -e
 
-echo " Starting Pear Care Unified Container..."
+echo "🚀 Starting Pear Care Unified Container..."
+
+# Check if running in RunPod serverless mode
+if [ "$RUNPOD_SERVERLESS" = "1" ]; then
+    echo "📦 Running in RunPod Serverless mode"
+    exec python handler.py
+fi
+
+echo "🖥️ Running in standalone container mode"
 
 # Function to cleanup on exit
 cleanup() {
