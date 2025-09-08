@@ -29,6 +29,45 @@ model_router = None
 langchain_orchestrator = None
 auth_service = None
 
+async def run_async_in_handler(coro):
+    """
+    Helper function to run async code in the handler context
+    Handles the case where an event loop is already running
+    """
+    try:
+        # Try to get the current event loop
+        loop = asyncio.get_running_loop()
+        # If we get here, there's already a loop running
+        # We need to run the coroutine in a thread pool
+        import concurrent.futures
+        import threading
+        
+        result = None
+        exception = None
+        
+        def run_in_thread():
+            nonlocal result, exception
+            try:
+                # Create a new event loop for this thread
+                new_loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(new_loop)
+                result = new_loop.run_until_complete(coro)
+                new_loop.close()
+            except Exception as e:
+                exception = e
+        
+        thread = threading.Thread(target=run_in_thread)
+        thread.start()
+        thread.join()
+        
+        if exception:
+            raise exception
+        return result
+        
+    except RuntimeError:
+        # No running loop, we can use asyncio.run safely
+        return asyncio.run(coro)
+
 async def initialize_services():
     """Initialize all services once"""
     global services_initialized, model_router, langchain_orchestrator, auth_service
@@ -96,7 +135,7 @@ def handler(job):
                 "max_tokens": job_input.get("max_tokens", 500),
                 "temperature": job_input.get("temperature", 0.7)
             }
-            return asyncio.run(handle_chat_completion(data, {}))
+            return run_async_in_handler(handle_chat_completion(data, {}))
         
         # Handle chat messages format
         elif "messages" in job_input:
@@ -107,7 +146,7 @@ def handler(job):
                 "temperature": job_input.get("temperature", 0.7),
                 "stream": job_input.get("stream", False)
             }
-            return asyncio.run(handle_chat_completion(data, {}))
+            return run_async_in_handler(handle_chat_completion(data, {}))
         
         # Handle structured format
         elif "endpoint" in job_input:
@@ -122,9 +161,9 @@ def handler(job):
             if endpoint == "health":
                 return handle_health_check()
             elif endpoint == "chat":
-                return asyncio.run(handle_chat_completion(data, headers))
+                return run_async_in_handler(handle_chat_completion(data, headers))
             elif endpoint == "langchain":
-                return asyncio.run(handle_langchain_consultation(data, headers))
+                return run_async_in_handler(handle_langchain_consultation(data, headers))
             elif endpoint == "models":
                 return handle_models_list()
             else:
@@ -137,7 +176,7 @@ def handler(job):
                 "patient_data": job_input.get("patient_data", {}),
                 "session_id": job_input.get("session_id")
             }
-            return asyncio.run(handle_langchain_consultation(data, {}))
+            return run_async_in_handler(handle_langchain_consultation(data, {}))
         
         else:
             return {"error": "Invalid input format. Expected 'prompt', 'messages', 'endpoint', or 'symptoms'"}

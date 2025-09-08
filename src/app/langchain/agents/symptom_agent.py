@@ -21,7 +21,7 @@ class SymptomAgent:
     
     def __init__(self, openai_client: OpenAIClient):
         self.client = openai_client
-        self.parser = JsonOutputParser(pydantic_object=Symptoms)
+        self.parser = JsonOutputParser()
     
     async def warmup(self):
         """Warm up GPT-5-nano"""
