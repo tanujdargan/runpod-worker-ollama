@@ -1,22 +1,11 @@
 {
   "input": {
-    "endpoint": "langchain",
-    "method": "POST",
-    "data": {
-      "symptoms": "I have been experiencing severe headaches for the past 3 days, along with nausea and sensitivity to light.",
-      "patient_data": {
-        "age": 32,
-        "gender": "female",
-        "pregnant": false,
-        "location": "Boston, MA"
-      },
-      "session_id": "test-session-123"
+    "symptoms": "I have been experiencing chest pain and shortness of breath for the past 2 days",
+    "patient_data": {
+      "age": 45,
+      "gender": "male",
+      "medical_history": "hypertension, diabetes"
     },
-    "headers": {
-      "authorization": "Bearer test-api-key",
-      "content-type": "application/json"
-    }
+    "session_id": "test-session-123"
   }
 }
-
-

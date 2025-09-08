@@ -73,15 +73,10 @@ def handler(job):
     """
     Main RunPod handler function
     
-    Expected job input format:
-    {
-        "input": {
-            "endpoint": "chat|langchain|health",
-            "method": "POST|GET",
-            "data": {...},
-            "headers": {...}
-        }
-    }
+    Supports multiple input formats:
+    1. Simple prompt: {"input": {"prompt": "Hello"}}
+    2. Chat completion: {"input": {"messages": [...]}}
+    3. Structured: {"input": {"endpoint": "chat", "data": {...}}}
     """
     try:
         # Get job input
@@ -90,25 +85,62 @@ def handler(job):
         if not job_input:
             return {"error": "No input provided"}
         
-        # Extract request details
-        endpoint = job_input.get("endpoint", "health")
-        method = job_input.get("method", "GET")
-        data = job_input.get("data", {})
-        headers = job_input.get("headers", {})
+        print(f"🚀 Processing RunPod request: {job_input}")
         
-        print(f"🚀 Processing {method} {endpoint} request")
+        # Handle simple prompt format (backward compatibility)
+        if "prompt" in job_input:
+            messages = [{"role": "user", "content": job_input["prompt"]}]
+            data = {
+                "model": job_input.get("model", "phraser"),
+                "messages": messages,
+                "max_tokens": job_input.get("max_tokens", 500),
+                "temperature": job_input.get("temperature", 0.7)
+            }
+            return asyncio.run(handle_chat_completion(data, {}))
         
-        # Route to appropriate handler
-        if endpoint == "health":
-            return handle_health_check()
-        elif endpoint == "chat":
-            return asyncio.run(handle_chat_completion(data, headers))
-        elif endpoint == "langchain":
-            return asyncio.run(handle_langchain_consultation(data, headers))
-        elif endpoint == "models":
-            return handle_models_list()
+        # Handle chat messages format
+        elif "messages" in job_input:
+            data = {
+                "model": job_input.get("model", "phraser"),
+                "messages": job_input["messages"],
+                "max_tokens": job_input.get("max_tokens", 500),
+                "temperature": job_input.get("temperature", 0.7),
+                "stream": job_input.get("stream", False)
+            }
+            return asyncio.run(handle_chat_completion(data, {}))
+        
+        # Handle structured format
+        elif "endpoint" in job_input:
+            endpoint = job_input.get("endpoint", "health")
+            method = job_input.get("method", "GET")
+            data = job_input.get("data", {})
+            headers = job_input.get("headers", {})
+            
+            print(f"🚀 Processing {method} {endpoint} request")
+            
+            # Route to appropriate handler
+            if endpoint == "health":
+                return handle_health_check()
+            elif endpoint == "chat":
+                return asyncio.run(handle_chat_completion(data, headers))
+            elif endpoint == "langchain":
+                return asyncio.run(handle_langchain_consultation(data, headers))
+            elif endpoint == "models":
+                return handle_models_list()
+            else:
+                return {"error": f"Unknown endpoint: {endpoint}"}
+        
+        # Handle Langchain consultation format
+        elif "symptoms" in job_input:
+            data = {
+                "symptoms": job_input["symptoms"],
+                "patient_data": job_input.get("patient_data", {}),
+                "session_id": job_input.get("session_id")
+            }
+            return asyncio.run(handle_langchain_consultation(data, {}))
+        
         else:
-            return {"error": f"Unknown endpoint: {endpoint}"}
+            return {"error": "Invalid input format. Expected 'prompt', 'messages', 'endpoint', or 'symptoms'"}
     
     except Exception as e:
         print(f"❌ Handler error: {e}")
