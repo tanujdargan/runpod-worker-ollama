@@ -1,0 +1,24 @@
+{
+  "input": {
+    "endpoint": "chat",
+    "method": "POST",
+    "data": {
+      "model": "phraser",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Count from 1 to 5 and explain each number briefly."
+        }
+      ],
+      "max_tokens": 200,
+      "temperature": 0.1,
+      "stream": true
+    },
+    "headers": {
+      "authorization": "Bearer test-api-key",
+      "content-type": "application/json"
+    }
+  }
+}
+
+

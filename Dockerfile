@@ -4,6 +4,7 @@ FROM nvidia/cuda:11.8-runtime-ubuntu22.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
+ENV RUNPOD_SERVERLESS=1
 
 # System dependencies
 RUN apt-get update && apt-get install -y \
@@ -28,9 +29,10 @@ WORKDIR /app
 # Copy requirements first (for better Docker caching)
 COPY src/requirements.txt /app/requirements.txt
 
-# Install Python dependencies
+# Install Python dependencies including uvloop for better performance
 RUN pip install --no-cache-dir --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir uvloop
 
 # Copy application code
 COPY src/ /app/
@@ -39,7 +41,7 @@ COPY src/ /app/
 RUN mkdir -p /app/logs
 RUN mkdir -p /app/data
 
-# Download and preload MedGemma model
+# Start Ollama and download MedGemma model
 RUN ollama serve & \
     sleep 15 && \
     echo "Pulling MedGemma model..." && \
@@ -50,13 +52,13 @@ RUN ollama serve & \
 # Expose ports
 EXPOSE 8000 11434
 
-# Create startup script
+# Create startup script for serverless
 COPY src/start.sh /app/start.sh
 RUN chmod +x /app/start.sh
 
-# Health check
+# Health check for standalone mode
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Default command
-CMD ["/app/start.sh"]
+# Default command - will be overridden by RunPod
+CMD ["python", "handler.py"]

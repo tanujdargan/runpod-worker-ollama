@@ -1,0 +1,12 @@
+{
+  "input": {
+    "endpoint": "models",
+    "method": "GET",
+    "data": {},
+    "headers": {
+      "authorization": "Bearer test-api-key"
+    }
+  }
+}
+
+

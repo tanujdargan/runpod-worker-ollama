@@ -28,5 +28,6 @@ tenacity==8.2.3
 # JSON processing
 orjson==3.10.14
 
-# RunPod (for compatibility)
+# RunPod serverless
 runpod
+uvloop
