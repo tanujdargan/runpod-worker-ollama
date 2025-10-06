@@ -12,7 +12,7 @@
     "presets": [],
     "env": [
       {
-        "key": "MODEL_NAME",
+        "key": "OLLAMA_MODEL_NAME",
         "input": {
           "name": "Model Name",
           "type": "string",
