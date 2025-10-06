@@ -33,8 +33,8 @@ done
 if [ -z "$OLLAMA_MODEL_NAME" ]; then
     echo "No model name provided. Skipping model pull..."
 else
-    echo "Pulling model $MODEL_NAME..."
-    ollama pull $MODEL_NAME
+    echo "Pulling model $OLLAMA_MODEL_NAME..."
+    ollama pull $OLLAMA_MODEL_NAME
 fi
 
 python -u handler.py $1
