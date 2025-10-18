@@ -1,4 +1,4 @@
-ARG OLLAMA_VERSION=0.11.10
+ARG OLLAMA_VERSION=0.12.6
 
 # Use the official Ollama image which includes CUDA support
 FROM ollama/ollama:${OLLAMA_VERSION}
