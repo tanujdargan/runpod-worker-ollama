@@ -22,6 +22,7 @@ services:
       # Ollama Configuration
       - OLLAMA_BASE_URL=http://localhost:11434
       - OLLAMA_MODEL=medgemma:27b
+      - OLLAMA_FLASH_ATTENTION=1
       
       # Application Configuration
       - HOST=0.0.0.0
