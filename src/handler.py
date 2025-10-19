@@ -23,6 +23,10 @@ from app.langchain.orchestrator import LangchainOrchestrator
 from app.clients.openai_client import OpenAIClient
 from app.clients.ollama_client import OllamaClient
 
+# Concurrency control (from upstream vLLM logic)
+DEFAULT_MAX_CONCURRENCY = 8
+max_concurrency = int(os.getenv("MAX_CONCURRENCY", DEFAULT_MAX_CONCURRENCY))
+
 # Global variables for services
 services_initialized = False
 model_router = None
@@ -359,10 +363,15 @@ if __name__ == "__main__":
     # Set up asyncio event loop policy for better performance
     if sys.platform == 'linux':
         asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-    
+
     # Pre-warm the handler
     warm_handler()
-    
-    # Start RunPod serverless
+
+    # Start RunPod serverless with concurrency control
     print("🚀 Starting RunPod Serverless Handler")
-    runpod.serverless.start({"handler": handler})
+    print(f"📊 Max concurrency: {max_concurrency}")
+    runpod.serverless.start({
+        "handler": handler,
+        "concurrency_modifier": lambda x: max_concurrency,
+        "return_aggregate_stream": True,
+    })

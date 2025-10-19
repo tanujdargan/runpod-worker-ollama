@@ -12,14 +12,54 @@
     "presets": [],
     "env": [
       {
-        "key": "MODEL_NAME",
-          "input": {
-            "name": "Model Name",
-            "type": "string",
-            "description": "Name of a model to preload",
-            "default": "",
-            "advanced": false
-          }
+        "key": "OLLAMA_MODEL_NAME",
+        "input": {
+          "name": "Model Name",
+          "type": "string",
+          "description": "Name of a model to preload",
+          "default": "",
+          "advanced": false
+        }
+      },
+      {
+        "key": "OLLAMA_FLASH_ATTENTION",
+        "input": {
+          "name": "Flash Attention",
+          "type": "string",
+          "description": "Enable flash attention for faster inference (set to 1)",
+          "default": "1",
+          "advanced": true
+        }
+      },
+      {
+        "key": "MAX_CONCURRENCY",
+        "input": {
+          "name": "Max Concurrency",
+          "type": "number",
+          "description": "Maximum number of concurrent requests to handle (default: 8)",
+          "default": 8,
+          "advanced": true
+        }
+      },
+      {
+        "key": "OLLAMA_NUM_PARALLEL",
+        "input": {
+          "name": "Parallel Requests",
+          "type": "string",
+          "description": "Maximum number of concurrent requests to handle (default: 4 or 1)",
+          "default": "",
+          "advanced": true
+        }
+      },
+      {
+        "key": "OPENAI_API_KEY",
+        "input": {
+          "name": "OpenAI API Key",
+          "type": "string",
+          "description": "OpenAI API key for GPT models (required for Pear Care pipeline)",
+          "default": "",
+          "advanced": false
+        }
       }
     ]
   }

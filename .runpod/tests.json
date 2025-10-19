@@ -13,7 +13,7 @@
     "gpuCount": 1,
     "env": [
       {
-        "key": "MODEL_NAME",
+        "key": "OLLAMA_MODEL_NAME",
         "value": "phi3"
       }
     ],
