@@ -136,7 +136,7 @@ def handler(job):
             data = {
                 "model": job_input.get("model", "phraser"),
                 "messages": messages,
-                "max_tokens": job_input.get("max_tokens", 500),
+                "max_tokens": job_input.get("max_tokens", 4000),  # Higher for reasoning models like gpt-5-nano
                 "temperature": job_input.get("temperature", 1)  # gpt-5-nano only supports temperature=1
             }
             # Skip auth for simple prompt format (backward compatibility)
@@ -147,7 +147,7 @@ def handler(job):
             data = {
                 "model": job_input.get("model", "phraser"),
                 "messages": job_input["messages"],
-                "max_tokens": job_input.get("max_tokens", 500),
+                "max_tokens": job_input.get("max_tokens", 4000),  # Higher for reasoning models like gpt-5-nano
                 "temperature": job_input.get("temperature", 1),  # gpt-5-nano only supports temperature=1
                 "stream": job_input.get("stream", False)
             }
