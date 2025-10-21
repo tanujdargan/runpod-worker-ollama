@@ -14,7 +14,7 @@
     "env": [
       {
         "key": "OLLAMA_MODEL_NAME",
-        "value": "medgemma:27b"
+        "value": "llama3.2:1b"
       },
       {
         "key": "OLLAMA_FLASH_ATTENTION",

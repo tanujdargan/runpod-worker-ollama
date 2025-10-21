@@ -16,8 +16,8 @@
         "input": {
           "name": "Model Name",
           "type": "string",
-          "description": "Name of a model to preload from Ollama",
-          "default": "medgemma:27b",
+          "description": "Name of a model to preload from Ollama (e.g., llama3.2:1b, phi3, mistral)",
+          "default": "llama3.2:1b",
           "advanced": false
         }
       },
