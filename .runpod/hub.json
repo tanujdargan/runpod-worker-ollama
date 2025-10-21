@@ -16,8 +16,8 @@
         "input": {
           "name": "Model Name",
           "type": "string",
-          "description": "Name of a model to preload",
-          "default": "phi3",
+          "description": "Name of a model to preload from Ollama",
+          "default": "medgemma:27b",
           "advanced": false
         }
       },
@@ -38,6 +38,26 @@
           "type": "string",
           "description": "Maximum number of concurrent requests to handle (default: 4 or 1)",
           "default": "",
+          "advanced": true
+        }
+      },
+      {
+        "key": "OLLAMA_FLASH_ATTENTION",
+        "input": {
+          "name": "Flash Attention",
+          "type": "string",
+          "description": "Enable flash attention for faster inference (set to 1)",
+          "default": "1",
+          "advanced": true
+        }
+      },
+      {
+        "key": "OLLAMA_MODELS",
+        "input": {
+          "name": "Ollama Models Directory",
+          "type": "string",
+          "description": "Directory to store Ollama models (default: /runpod-volume for persistence)",
+          "default": "/runpod-volume",
           "advanced": true
         }
       }

@@ -14,7 +14,11 @@
     "env": [
       {
         "key": "OLLAMA_MODEL_NAME",
-        "value": "phi3"
+        "value": "medgemma:27b"
+      },
+      {
+        "key": "OLLAMA_FLASH_ATTENTION",
+        "value": "1"
       }
     ],
     "allowedCudaVersions": [
