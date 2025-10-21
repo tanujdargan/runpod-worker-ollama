@@ -139,7 +139,8 @@ def handler(job):
                 "max_tokens": job_input.get("max_tokens", 500),
                 "temperature": job_input.get("temperature", 0.7)
             }
-            return run_async_in_handler(handle_chat_completion(data, {}))
+            # Skip auth for simple prompt format (backward compatibility)
+            return run_async_in_handler(handle_chat_completion(data, {}, skip_auth=True))
         
         # Handle chat messages format
         elif "messages" in job_input:
@@ -150,7 +151,8 @@ def handler(job):
                 "temperature": job_input.get("temperature", 0.7),
                 "stream": job_input.get("stream", False)
             }
-            return run_async_in_handler(handle_chat_completion(data, {}))
+            # Skip auth for direct message format (backward compatibility)
+            return run_async_in_handler(handle_chat_completion(data, {}, skip_auth=True))
         
         # Handle structured format
         elif "endpoint" in job_input:
@@ -180,7 +182,8 @@ def handler(job):
                 "patient_data": job_input.get("patient_data", {}),
                 "session_id": job_input.get("session_id")
             }
-            return run_async_in_handler(handle_langchain_consultation(data, {}))
+            # Skip auth for direct symptoms format (backward compatibility)
+            return run_async_in_handler(handle_langchain_consultation(data, {}, skip_auth=True))
         
         else:
             return {"error": "Invalid input format. Expected 'prompt', 'messages', 'endpoint', or 'symptoms'"}
@@ -211,16 +214,22 @@ def handle_health_check():
             "timestamp": time.time()
         }
 
-async def handle_chat_completion(data: Dict, headers: Dict):
+async def handle_chat_completion(data: Dict, headers: Dict, skip_auth: bool = False):
     """Handle chat completion requests"""
     try:
         # Initialize services if needed
         await initialize_services()
-        
+
         # Validate authentication (simplified for RunPod)
-        api_key = headers.get("authorization", "").replace("Bearer ", "")
-        if not api_key and not os.getenv("DISABLE_AUTH"):
-            return {"error": "Missing API key"}
+        # Skip auth if explicitly requested or if no secrets are configured
+        if not skip_auth:
+            api_key = headers.get("authorization", "").replace("Bearer ", "")
+            vercel_secret = os.getenv("VERCEL_API_SECRET")
+            jwt_secret = os.getenv("JWT_SECRET_KEY")
+
+            # Only require auth if secrets are configured
+            if (vercel_secret or jwt_secret) and not api_key:
+                return {"error": "Missing API key"}
         
         # Extract chat completion parameters
         model = data.get("model", "phraser")
@@ -276,16 +285,22 @@ async def handle_chat_completion(data: Dict, headers: Dict):
         print(f"❌ Chat completion error: {e}")
         return {"error": str(e)}
 
-async def handle_langchain_consultation(data: Dict, headers: Dict):
+async def handle_langchain_consultation(data: Dict, headers: Dict, skip_auth: bool = False):
     """Handle Langchain consultation requests"""
     try:
         # Initialize services if needed
         await initialize_services()
-        
+
         # Validate authentication (simplified for RunPod)
-        api_key = headers.get("authorization", "").replace("Bearer ", "")
-        if not api_key and not os.getenv("DISABLE_AUTH"):
-            return {"error": "Missing API key"}
+        # Skip auth if explicitly requested or if no secrets are configured
+        if not skip_auth:
+            api_key = headers.get("authorization", "").replace("Bearer ", "")
+            vercel_secret = os.getenv("VERCEL_API_SECRET")
+            jwt_secret = os.getenv("JWT_SECRET_KEY")
+
+            # Only require auth if secrets are configured
+            if (vercel_secret or jwt_secret) and not api_key:
+                return {"error": "Missing API key"}
         
         # Extract consultation parameters
         symptoms = data.get("symptoms", "")

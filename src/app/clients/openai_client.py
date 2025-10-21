@@ -42,10 +42,11 @@ class OpenAIClient:
         try:
             client = await self._get_client()
             # Test with a minimal request to GPT-5-nano
+            # Use max_completion_tokens for newer models
             await client.chat.completions.create(
                 model="gpt-5-nano",
                 messages=[{"role": "user", "content": "test"}],
-                max_tokens=1
+                max_completion_tokens=1
             )
             print("✅ OpenAI client warmed up")
         except Exception as e:
@@ -55,11 +56,11 @@ class OpenAIClient:
         """Check if OpenAI client is healthy"""
         try:
             client = await self._get_client()
-            # Simple test request
+            # Simple test request with max_completion_tokens for newer models
             response = await client.chat.completions.create(
                 model="gpt-5-nano",
                 messages=[{"role": "user", "content": "health"}],
-                max_tokens=1
+                max_completion_tokens=1
             )
             return True
         except Exception:
@@ -98,17 +99,22 @@ class OpenAIClient:
         }
         
         openai_model = model_mapping.get(model, model)
-        
+
+        # Use max_completion_tokens for newer models (gpt-5-nano, gpt-4, etc.)
+        # Use max_tokens for older models (gpt-3.5-turbo)
+        token_param_name = "max_completion_tokens" if openai_model in ["gpt-5-nano", "gpt-4", "gpt-4-turbo"] else "max_tokens"
+        token_param = {token_param_name: max_tokens} if max_tokens else {}
+
         if stream:
             return await self._stream_chat_completion(
-                client, messages, openai_model, max_tokens, temperature, **kwargs
+                client, messages, openai_model, token_param_name, max_tokens, temperature, **kwargs
             )
         else:
             response = await client.chat.completions.create(
                 model=openai_model,
                 messages=messages,
-                max_tokens=max_tokens,
                 temperature=temperature,
+                **token_param,
                 **kwargs
             )
             return response.model_dump()
@@ -118,18 +124,20 @@ class OpenAIClient:
         client,
         messages: List[Dict],
         model: str,
+        token_param_name: str,
         max_tokens: Optional[int],
         temperature: float,
         **kwargs
     ) -> AsyncGenerator[Dict, None]:
         """Stream chat completion responses"""
         try:
+            token_param = {token_param_name: max_tokens} if max_tokens else {}
             stream = await client.chat.completions.create(
                 model=model,
                 messages=messages,
-                max_tokens=max_tokens,
                 temperature=temperature,
                 stream=True,
+                **token_param,
                 **kwargs
             )
             
