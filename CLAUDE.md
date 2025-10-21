@@ -136,6 +136,7 @@ Required:
 
 Optional:
 - `OLLAMA_MODEL_NAME` - Model to preload from Ollama (e.g., `phi3`, `llama3.2:1b`)
+- `OLLAMA_MODELS` - Directory to store Ollama models (default: `/runpod-volume`)
 - `OLLAMA_FLASH_ATTENTION` - Enable flash attention for faster inference (set to `1`, default: `1`)
 - `OLLAMA_NUM_PARALLEL` - Maximum number of parallel Ollama requests (default: 4 or 1)
 - `MAX_CONCURRENCY` - Maximum concurrent requests in RunPod serverless (default: `8`)

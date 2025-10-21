@@ -52,6 +52,16 @@
         }
       },
       {
+        "key": "OLLAMA_MODELS",
+        "input": {
+          "name": "Ollama Models Directory",
+          "type": "string",
+          "description": "Directory to store Ollama models (default: /runpod-volume for persistence)",
+          "default": "/runpod-volume",
+          "advanced": true
+        }
+      },
+      {
         "key": "OPENAI_API_KEY",
         "input": {
           "name": "OpenAI API Key",
