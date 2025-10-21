@@ -137,7 +137,7 @@ def handler(job):
                 "model": job_input.get("model", "phraser"),
                 "messages": messages,
                 "max_tokens": job_input.get("max_tokens", 500),
-                "temperature": job_input.get("temperature", 0.7)
+                "temperature": job_input.get("temperature", 1)  # gpt-5-nano only supports temperature=1
             }
             # Skip auth for simple prompt format (backward compatibility)
             return run_async_in_handler(handle_chat_completion(data, {}, skip_auth=True))
@@ -148,7 +148,7 @@ def handler(job):
                 "model": job_input.get("model", "phraser"),
                 "messages": job_input["messages"],
                 "max_tokens": job_input.get("max_tokens", 500),
-                "temperature": job_input.get("temperature", 0.7),
+                "temperature": job_input.get("temperature", 1),  # gpt-5-nano only supports temperature=1
                 "stream": job_input.get("stream", False)
             }
             # Skip auth for direct message format (backward compatibility)
@@ -235,7 +235,7 @@ async def handle_chat_completion(data: Dict, headers: Dict, skip_auth: bool = Fa
         model = data.get("model", "phraser")
         messages = data.get("messages", [])
         max_tokens = data.get("max_tokens")
-        temperature = data.get("temperature", 0.7)
+        temperature = data.get("temperature", 1)  # gpt-5-nano only supports temperature=1
         stream = data.get("stream", False)
         
         if not messages:

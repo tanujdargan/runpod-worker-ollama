@@ -43,10 +43,12 @@ class OpenAIClient:
             client = await self._get_client()
             # Test with a minimal request to GPT-5-nano
             # Use max_completion_tokens for newer models
+            # gpt-5-nano only supports temperature=1 (default)
             await client.chat.completions.create(
                 model="gpt-5-nano",
                 messages=[{"role": "user", "content": "test"}],
-                max_completion_tokens=1
+                max_completion_tokens=16,
+                temperature=1
             )
             print("✅ OpenAI client warmed up")
         except Exception as e:
@@ -57,10 +59,12 @@ class OpenAIClient:
         try:
             client = await self._get_client()
             # Simple test request with max_completion_tokens for newer models
+            # gpt-5-nano only supports temperature=1 (default)
             response = await client.chat.completions.create(
                 model="gpt-5-nano",
                 messages=[{"role": "user", "content": "health"}],
-                max_completion_tokens=1
+                max_completion_tokens=16,
+                temperature=1
             )
             return True
         except Exception:
@@ -104,6 +108,10 @@ class OpenAIClient:
         # Use max_tokens for older models (gpt-3.5-turbo)
         token_param_name = "max_completion_tokens" if openai_model in ["gpt-5-nano", "gpt-4", "gpt-4-turbo"] else "max_tokens"
         token_param = {token_param_name: max_tokens} if max_tokens else {}
+
+        # gpt-5-nano only supports temperature=1 (default), override if needed
+        if openai_model == "gpt-5-nano":
+            temperature = 1
 
         if stream:
             return await self._stream_chat_completion(
